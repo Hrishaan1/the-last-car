@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE LAST CAR | Psychological Survival Horror</title>
+  <meta name="description" content="A first-person psychological survival horror game inside a stationary subway car following a nuclear emergency. Survive 30 days alone underground.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/node_modules/three/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D Canvas -->
+  <canvas id="render-canvas"></canvas>
+
+  <!-- Reticle & Prompts -->
+  <div id="crosshair"></div>
+  <div id="interaction-prompt"></div>
+  <div id="subtitles"></div>
+
+  <!-- HUD Interface -->
+  <div id="hud">
+    <div class="hud-top-left">
+      <div class="hud-title-card">
+        <h1 class="game-logo">THE LAST CAR</h1>
+        <div id="hud-day" class="day-counter">DAY 01 OF 30</div>
+      </div>
+      <div class="hud-time-badge">
+        <span class="clock-icon">🕒</span>
+        <span id="hud-time">09:14 AM</span>
+      </div>
+      <div id="hud-condition" class="status-badge healthy">Stable</div>
+    </div>
+
+    <div class="hud-top-right">
+      <div class="survival-bars">
+        <div class="stat-row">
+          <span class="stat-label">THIRST</span>
+          <div class="progress-track"><div id="hud-thirst-bar" class="progress-fill thirst"></div></div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">HUNGER</span>
+          <div class="progress-track"><div id="hud-hunger-bar" class="progress-fill hunger"></div></div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">FATIGUE</span>
+          <div class="progress-track"><div id="hud-fatigue-bar" class="progress-fill fatigue"></div></div>
+        </div>
+      </div>
+
+      <div class="quick-device-status">
+        <span id="hud-battery-icon" class="device-icon">🔋</span>
+        <span id="hud-battery-text">68%</span>
+      </div>
+    </div>
+
+    <!-- Bottom Quick Controls Hint -->
+    <div class="hud-bottom">
+      <div class="hotkey-group">
+        <button id="btn-phone" class="hud-btn" title="Toggle Smartphone [T]"><span class="key-badge">T</span> Smartphone</button>
+        <button id="btn-inv" class="hud-btn" title="Open Inventory [I]"><span class="key-badge">I</span> Supplies</button>
+        <button id="btn-journal" class="hud-btn" title="Evidence Journal [J]"><span class="key-badge">J</span> Journal</button>
+        <button id="btn-settings" class="hud-btn" title="Options / Debug [ESC]"><span class="key-badge">ESC</span> Options</button>
+      </div>
+      <div class="hud-hint">Click screen to look • [WASD] Move • [E] Interact • [F] Flashlight</div>
+    </div>
+  </div>
+
+  <!-- Diegetic Smartphone Screen Modal -->
+  <div id="phone-modal" class="modal-overlay">
+    <div class="smartphone-case">
+      <div class="phone-screen">
+        <!-- Phone Status Bar -->
+        <div class="phone-top-bar">
+          <div class="carrier-status"><span class="signal-bars">✕</span> NO SERVICE</div>
+          <div class="phone-clock">09:14</div>
+          <div class="battery-status">
+            <span id="phone-battery-level">68%</span>
+            <span class="phone-batt-icon">🔋</span>
+          </div>
+        </div>
+
+        <!-- Phone Action Bar (Flashlight & Close) -->
+        <div class="phone-header-controls">
+          <button id="phone-flashlight-btn" class="flash-btn">💡 LIGHT OFF</button>
+          <button id="phone-close-btn" class="close-x">✕</button>
+        </div>
+
+        <!-- Phone Apps Content Area -->
+        <div id="phone-tab-content" class="phone-content-body">
+          <!-- Populated dynamically by UIManager -->
+        </div>
+
+        <!-- Phone Bottom Navigation Bar -->
+        <div class="phone-nav-bar">
+          <button id="phone-tab-messages" class="tab-btn active" title="Messages">💬<small>Messages</small></button>
+          <button id="phone-tab-alerts" class="tab-btn" title="Civil Defense Alerts">⚠️<small>Alerts</small></button>
+          <button id="phone-tab-calls" class="tab-btn" title="Call Logs & Voicemail">📞<small>Calls</small></button>
+          <button id="phone-tab-photos" class="tab-btn" title="Camera Roll">📷<small>Photos</small></button>
+          <button id="phone-tab-recorder" class="tab-btn" title="Audio Logs">🎙️<small>Audio</small></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supplies & Inventory Modal -->
+  <div id="inventory-modal" class="modal-overlay">
+    <div class="modal-window inventory-window">
+      <div class="modal-header">
+        <h2>SURVIVAL SUPPLIES</h2>
+        <button id="inventory-close-btn" class="modal-close">✕</button>
+      </div>
+      <div class="modal-subtitle">Ration carefully. Supplies will not last 30 days without scavenged caches.</div>
+      <div id="inventory-grid" class="inventory-grid"></div>
+    </div>
+  </div>
+
+  <!-- Evidence Journal Modal -->
+  <div id="journal-modal" class="modal-overlay">
+    <div class="modal-window journal-window">
+      <div class="modal-header">
+        <h2>EVIDENCE & SURVIVAL JOURNAL</h2>
+        <button id="journal-close-btn" class="modal-close">✕</button>
+      </div>
+      <div class="modal-subtitle">Chronological record of discoveries, anomalies, and outside encounters.</div>
+      <div id="journal-entries" class="journal-list"></div>
+    </div>
+  </div>
+
+  <!-- Dialogue Overlay (Day 10 Woman, Outside Voices) -->
+  <div id="dialogue-modal" class="dialogue-layer">
+    <div class="dialogue-box">
+      <div id="dialogue-speaker" class="dialogue-speaker">Voice Outside Door</div>
+      <div id="dialogue-text" class="dialogue-text">"Is someone still inside?"</div>
+      <div id="dialogue-choices" class="dialogue-choices"></div>
+    </div>
+  </div>
+
+  <!-- Inspect Item / Document Modal -->
+  <div id="inspect-modal" class="modal-overlay">
+    <div class="modal-window inspect-window">
+      <div class="modal-header">
+        <h3 id="inspect-title">DOCUMENT</h3>
+        <button id="inspect-close-btn" class="modal-close">✕</button>
+      </div>
+      <div id="inspect-text" class="inspect-body"></div>
+    </div>
+  </div>
+
+  <!-- Narrative Prologue & Cinematic Modal -->
+  <div id="narrative-modal" class="modal-overlay">
+    <div class="modal-window narrative-window">
+      <h2 id="narrative-title" class="cinematic-title">OCTOBER 18 — 09:11 AM</h2>
+      <div id="narrative-content" class="narrative-body"></div>
+      <div class="modal-actions">
+        <button id="narrative-btn" class="primary-btn">PROCEED INTO SUBWAY CAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day Transition Overlay -->
+  <div id="day-transition-overlay" class="transition-screen">
+    <div class="transition-content">
+      <div id="transition-day-number" class="transition-day">DAY 02</div>
+      <div class="transition-sub">UNDERGROUND COUNTDOWN IN PROGRESS</div>
+      <div id="transition-summary" class="transition-summary">Hours pass in the stillness of the tunnel.</div>
+      <div class="pulsing-line"></div>
+    </div>
+  </div>
+
+  <!-- Ending Screen Modal -->
+  <div id="ending-modal" class="modal-overlay">
+    <div class="modal-window ending-window">
+      <h1 id="ending-title" class="ending-headline">ENDING A: THE SURVIVOR</h1>
+      <div id="ending-content" class="ending-body"></div>
+      <div class="modal-actions">
+        <button id="ending-restart-btn" class="primary-btn">PLAY AGAIN / RESTART COUNTDOWN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Debug Day Selector Modal -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="modal-window settings-window">
+      <div class="modal-header">
+        <h2>OPTIONS & TIMELINE JUMP</h2>
+        <button id="settings-close-btn" class="modal-close">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-row">
+          <label for="slider-volume">Audio Volume</label>
+          <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.8">
+        </div>
+
+        <div class="debug-day-selector">
+          <h3>DEBUG: JUMP TO STORY MILESTONES</h3>
+          <p class="debug-desc">Instantly test key narrative days and encounters without waiting:</p>
+          <div class="day-jump-buttons">
+            <button class="btn-jump-day" data-day="1">Day 1: The Departure</button>
+            <button class="btn-jump-day" data-day="4">Day 4: Locked Cabinet</button>
+            <button class="btn-jump-day" data-day="7">Day 7: Anomaly Photo</button>
+            <button class="btn-jump-day highlight" data-day="10">Day 10: THE WOMAN</button>
+            <button class="btn-jump-day" data-day="14">Day 14: Incident Logs</button>
+            <button class="btn-jump-day" data-day="18">Day 18: Corrupted Radio</button>
+            <button class="btn-jump-day" data-day="20">Day 20: Survivor Dilemma</button>
+            <button class="btn-jump-day highlight-red" data-day="30">Day 30: The Countdown End</button>
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <button id="btn-reset-game" class="danger-btn">Reset All Save Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
