@@ -38,6 +38,17 @@
         <span id="hud-time">09:14 AM</span>
       </div>
       <div id="hud-condition" class="status-badge healthy">Stable</div>
+
+      <!-- Among Us-style Daily Tasks Tracker -->
+      <div id="hud-task-tracker" class="task-tracker">
+        <div class="task-tracker-header">
+          <span class="task-tracker-title">DAILY TASKS</span>
+          <span id="task-tracker-count" class="task-tracker-count">0/4</span>
+        </div>
+        <div id="task-tracker-list" class="task-tracker-list">
+          <!-- Dynamically populated daily maintenance tasks -->
+        </div>
+      </div>
     </div>
 
     <div class="hud-top-right">
@@ -142,6 +153,11 @@
       <div id="dialogue-text" class="dialogue-text">"Is someone still inside?"</div>
       <div id="dialogue-choices" class="dialogue-choices"></div>
     </div>
+  </div>
+
+  <!-- Interactive Task Mini-games Modal (Among Us style) -->
+  <div id="task-modal" class="modal-overlay">
+    <div id="task-modal-content" class="task-modal-wrapper"></div>
   </div>
 
   <!-- Inspect Item / Document Modal -->

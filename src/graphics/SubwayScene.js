@@ -665,9 +665,44 @@ export class SubwayScene {
     intercom.userData = {
       id: 'emergency_intercom',
       name: 'Emergency Train Intercom',
-      prompt: '[E] Press Emergency Call Button'
+      prompt: '[E] Emergency Intercom / Tune Radio'
     };
     this.interactables.push(intercom);
+
+    // 6. Ceiling Air Intake Grate (Daily Task: Clean Air Filter)
+    const carHeight = 2.4;
+    const ventGeo = new THREE.BoxGeometry(0.85, 0.08, 0.55);
+    const ventMat = new THREE.MeshStandardMaterial({ color: 0x1f2228, metalness: 0.85, roughness: 0.5 });
+    const ventMesh = new THREE.Mesh(ventGeo, ventMat);
+    ventMesh.position.set(0, carHeight - 0.08, -1.5);
+    this.scene.add(ventMesh);
+
+    // Dark intake grille slats
+    for (let vz = -0.18; vz <= 0.18; vz += 0.09) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.02, 0.02), new THREE.MeshBasicMaterial({ color: 0x050608 }));
+      bar.position.set(0, carHeight - 0.11, -1.5 + vz);
+      this.scene.add(bar);
+    }
+
+    ventMesh.userData = {
+      id: 'vent_grate',
+      name: 'Ceiling Air Intake Grate',
+      prompt: '[E] Clean Air Intake Grate'
+    };
+    this.interactables.push(ventMesh);
+
+    // 7. Platform Observation Window (Daily Task: Wipe Condensation)
+    const wipeWin = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 1.0, 1.2),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    wipeWin.position.set(1.36, 1.4, -3.5);
+    wipeWin.userData = {
+      id: 'window_wipe',
+      name: 'Platform Observation Window',
+      prompt: '[E] Wipe Window Condensation'
+    };
+    this.interactables.push(wipeWin);
   }
 
   // Floating volumetric dust particles in the train air

@@ -1,6 +1,7 @@
 // The Last Car - Comprehensive Immersive UI Manager
 import { gameState } from '../game/GameState.js';
 import { sound } from '../audio/SoundEngine.js';
+import { TaskMinigames } from './TaskMinigames.js';
 
 export class UIManager {
   constructor() {
@@ -17,17 +18,65 @@ export class UIManager {
     this.activePhoneTab = 'messages';
     this.onJumpDay = null;
     this.storyManager = null;
+    this.taskManager = null;
+    this.taskMinigames = null;
 
     this.initHUD();
     this.initPhoneUI();
     this.initModals();
     this.initShortcuts();
 
-    gameState.subscribe(() => this.renderHUD());
+    gameState.subscribe(() => {
+      this.renderHUD();
+      this.renderTaskTracker();
+    });
   }
 
   setStoryManager(sm) {
     this.storyManager = sm;
+  }
+
+  setTaskManager(tm) {
+    this.taskManager = tm;
+    this.taskMinigames = new TaskMinigames(tm, this);
+    this.taskManager.subscribe(() => this.renderTaskTracker());
+    this.renderTaskTracker();
+  }
+
+  renderTaskTracker() {
+    if (!this.taskManager) return;
+    const tasks = this.taskManager.getTodayTasks();
+    const countEl = document.getElementById('task-tracker-count');
+    const listEl = document.getElementById('task-tracker-list');
+    if (!listEl) return;
+
+    const completed = tasks.filter((t) => t.completed).length;
+    if (countEl) {
+      countEl.textContent = `${completed}/${tasks.length}`;
+      countEl.className = completed === tasks.length ? 'task-tracker-count all-done' : 'task-tracker-count';
+    }
+
+    listEl.innerHTML = tasks.map((t) => `
+      <div class="task-tracker-item ${t.completed ? 'completed' : 'pending'}" data-task="${t.id}" title="${t.desc}">
+        <span class="task-dot">${t.completed ? '✓' : '○'}</span>
+        <div class="task-text-col">
+          <span class="task-name">${t.title}</span>
+          <span class="task-location">${t.location}</span>
+        </div>
+      </div>
+    `).join('');
+
+    listEl.querySelectorAll('.task-tracker-item.pending').forEach((el) => {
+      el.addEventListener('click', () => {
+        this.openTask(el.dataset.task);
+      });
+    });
+  }
+
+  openTask(taskId) {
+    if (this.taskMinigames) {
+      this.taskMinigames.openTask(taskId);
+    }
   }
 
   initHUD() {
@@ -492,6 +541,7 @@ export class UIManager {
     this.closePhone();
     this.closeInventory();
     this.closeJournal();
+    this.taskMinigames?.close();
     this.inspectModal?.classList.remove('active');
     this.settingsModal?.classList.remove('active');
     document.body.classList.remove('ui-blocking');
@@ -576,6 +626,11 @@ export class UIManager {
     setTimeout(() => {
       gameState.sleep();
       if (targetDay !== null) gameState.advanceDay(targetDay);
+
+      if (this.taskManager) {
+        this.taskManager.refreshDailyTasks(gameState.day);
+        this.renderTaskTracker();
+      }
 
       sound.setVentilationState(true);
       summaryText.textContent = `You awaken. Throat parched, body aching. The red emergency lamps hum softly above.`;

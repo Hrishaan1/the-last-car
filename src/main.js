@@ -3,6 +3,7 @@ import { SubwayScene } from './graphics/SubwayScene.js';
 import { FPSControls } from './controls/FPSControls.js';
 import { UIManager } from './ui/UIManager.js';
 import { StoryManager } from './game/StoryManager.js';
+import { TaskManager } from './game/TaskManager.js';
 import { gameState } from './game/GameState.js';
 import { sound } from './audio/SoundEngine.js';
 
@@ -12,6 +13,10 @@ window.addEventListener('DOMContentLoaded', () => {
   const ui = new UIManager();
   const story = new StoryManager(subwayScene, ui);
   ui.setStoryManager(story);
+
+  // Among Us-style daily maintenance tasks
+  const taskManager = new TaskManager(gameState);
+  ui.setTaskManager(taskManager);
 
   // Initialize Audio upon first user interaction
   const initAudioOnInteraction = () => {
@@ -31,22 +36,46 @@ window.addEventListener('DOMContentLoaded', () => {
     (hoverData) => {
       // Hover callback: update prompt on crosshair
       if (hoverData) {
-        ui.setInteractionPrompt(hoverData.prompt || `[E] ${hoverData.name}`);
+        let prompt = hoverData.prompt || `[E] ${hoverData.name}`;
+        const task = taskManager.isTaskAvailableForProp(hoverData.id);
+        if (task && !prompt.includes('(Task)')) {
+          prompt = `${prompt} (Task)`;
+        }
+        ui.setInteractionPrompt(prompt);
       } else {
         ui.setInteractionPrompt(null);
       }
     },
     (targetData) => {
       // Trigger interaction callback
-      handleWorldInteraction(targetData, subwayScene, ui, story);
+      handleWorldInteraction(targetData, subwayScene, ui, story, taskManager);
     }
   );
 
   // Interaction dispatcher for world objects
-  function handleWorldInteraction(target, scene, uiManager, storyManager) {
+  function handleWorldInteraction(target, scene, uiManager, storyManager, tasks) {
     if (!target || !target.id) return;
 
+    // Daily task props: open the matching minigame if the task is on today's list
+    // (the Day 10 door encounter always takes priority over the pressure task)
+    const isDay10Door = target.id === 'subway_doors' && gameState.day === 10 && !gameState.day10EncounterTriggered;
+    if (tasks && !isDay10Door) {
+      const task = tasks.isTaskAvailableForProp(target.id);
+      if (task) {
+        uiManager.openTask(task.id);
+        return;
+      }
+    }
+
     switch (target.id) {
+      case 'vent_grate':
+        uiManager.showSubtitles('The air intake grate is clear. No vent maintenance is scheduled on your list today.');
+        break;
+
+      case 'window_wipe':
+        uiManager.showSubtitles('Condensation clings to the glass, but wiping it is not on today\'s maintenance list.');
+        break;
+
       case 'subway_doors':
         handleDoorInteraction(uiManager, storyManager);
         break;

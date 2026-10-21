@@ -1003,6 +1003,158 @@ export class SoundEngine {
     noise.stop(now + duration + 0.05);
   }
 
+  playWireConnect() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Click snap
+    const osc = this.ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.04);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    // Subtle 60Hz connection spark
+    const spark = this.ctx.createOscillator();
+    spark.type = 'sawtooth';
+    spark.frequency.setValueAtTime(120, now);
+    const sparkGain = this.ctx.createGain();
+    sparkGain.gain.setValueAtTime(0.2, now);
+    sparkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    osc.connect(gain);
+    gain.connect(this.effectsGain);
+    spark.connect(sparkGain);
+    sparkGain.connect(this.effectsGain);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+    spark.start(now);
+    spark.stop(now + 0.09);
+  }
+
+  playSqueegeeWipe() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer('pink');
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800 + Math.random() * 300, now);
+    filter.Q.setValueAtTime(3.5, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.effectsGain);
+
+    noise.start(now);
+    noise.stop(now + 0.25);
+  }
+
+  playVentScrape() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Metallic clatter
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(340, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.12);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.28, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.effectsGain);
+    osc.start(now);
+    osc.stop(now + 0.16);
+  }
+
+  playRadioTuning(freqDiff = 1.0) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Heterodyne carrier whistle
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    const pitch = 300 + Math.min(2400, Math.abs(freqDiff) * 1200);
+    osc.frequency.setValueAtTime(pitch, now);
+
+    const gain = this.ctx.createGain();
+    const vol = Math.max(0.02, Math.min(0.2, 0.25 - Math.abs(freqDiff) * 0.1));
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    osc.connect(gain);
+    gain.connect(this.effectsGain);
+    osc.start(now);
+    osc.stop(now + 0.09);
+  }
+
+  playPneumaticPump() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Heavy lever clank
+    const osc = this.ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.1);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.45, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    // Pneumatic air hiss (pssshhhh)
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer('white');
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1600, now + 0.04);
+    filter.frequency.linearRampToValueAtTime(600, now + 0.35);
+    filter.Q.setValueAtTime(2.0, now);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.001, now);
+    noiseGain.gain.setValueAtTime(0.3, now + 0.05);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    osc.connect(gain);
+    gain.connect(this.effectsGain);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.effectsGain);
+
+    osc.start(now);
+    osc.stop(now + 0.14);
+    noise.start(now + 0.04);
+    noise.stop(now + 0.4);
+  }
+
+  playTaskComplete() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Two-tone bright chime (523.25Hz -> 783.99Hz, C5 to G5)
+    [523.25, 783.99].forEach((freq, i) => {
+      const time = now + i * 0.12;
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, time);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.28, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
+
+      osc.connect(gain);
+      gain.connect(this.effectsGain);
+      osc.start(time);
+      osc.stop(time + 0.5);
+    });
+  }
+
   setMasterVolume(val) {
     if (this.masterVolume && this.ctx) {
       this.masterVolume.gain.setValueAtTime(val, this.ctx.currentTime);
